@@ -2,10 +2,10 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 /**
- * @desc Get courses based on user role
- * @route GET /api/courses
- * @access Admin: All courses, Teacher: Only their courses, Student: Only their enrolled courses
+ *  GET /api/courses
+ * Admin: All courses, Teacher: Only their courses, Student: Only their enrolled courses
  */
+
 exports.getAllCourses = async (req, res) => {
   try {
     console.log(
@@ -39,31 +39,31 @@ exports.getAllCourses = async (req, res) => {
         },
       });
     } else {
-      return res.status(403).json({ error: "Unauthorized role" });
+      return res.json({ error: "Unauthorized role" });
     }
 
     console.log("Courses fetched:", courses);
     res.json(courses);
   } catch (error) {
     console.error("Error fetching courses:", error);
-    res.status(500).json({ error: "Failed to fetch courses" });
+    res.json({ error: "Failed to fetch courses" });
   }
 };
 
 /**
- * @desc Create a new course (Only Admin)
- * @route POST /api/courses
- * @access Admin
+ * POST /api/courses
+ * Admin
  */
+
 exports.createCourse = async (req, res) => {
   try {
     const { name, startDate, endDate, time, category, teacherId, zoom } =
       req.body;
 
     if (!name || !startDate || !endDate || !time || !category) {
-      return res
-        .status(400)
-        .json({ error: "All fields except teacherId and zoom are required" });
+      return res.json({
+        error: "All fields except teacherId and zoom are required",
+      });
     }
 
     let assignedTeacherId = null;
@@ -72,7 +72,7 @@ exports.createCourse = async (req, res) => {
         where: { id: teacherId },
       });
       if (!teacher || teacher.role !== "teacher") {
-        return res.status(400).json({ error: "Invalid teacher ID" });
+        return res.json({ error: "Invalid teacher ID" });
       }
       assignedTeacherId = teacherId;
     }
@@ -90,39 +90,40 @@ exports.createCourse = async (req, res) => {
       },
     });
 
-    res.status(201).json(newCourse);
+    res.json(newCourse);
   } catch (error) {
     console.error("Error creating course:", error);
-    res.status(500).json({ error: "Failed to create course" });
+    res.json({ error: "Failed to create course" });
   }
 };
 /**
- * @desc Delete a course (Only Admin)
- * @route DELETE /api/courses/:id
- * @access Admin
+ * DELETE /api/courses/:id
+ * Admin
  */
+
 exports.deleteCourse = async (req, res) => {
   try {
     const { id } = req.params;
 
     const course = await prisma.course.findUnique({ where: { id } });
     if (!course) {
-      return res.status(404).json({ error: "Course not found" });
+      return res.json({ error: "Course not found" });
     }
 
     await prisma.course.delete({ where: { id } });
 
     res.json({ message: "Course deleted successfully" });
   } catch (error) {
-    console.error("❌ Error deleting course:", error);
-    res.status(500).json({ error: "Failed to delete course" });
+    console.error("Error deleting course:", error);
+    res.json({ error: "Failed to delete course" });
   }
 };
+
 /**
- * @desc Assign a teacher to a course
- * @route PATCH /api/courses/:courseId/assign-teacher
- * @access Admin
+ * PATCH /api/courses/:courseId/assign-teacher
+ * Admin
  */
+
 exports.assignTeacher = async (req, res) => {
   try {
     const { courseId } = req.params;
@@ -130,12 +131,12 @@ exports.assignTeacher = async (req, res) => {
 
     const teacher = await prisma.user.findUnique({ where: { id: teacherId } });
     if (!teacher || teacher.role !== "teacher") {
-      return res.status(400).json({ error: "Invalid teacher ID" });
+      return res.json({ error: "Invalid teacher ID" });
     }
 
     const course = await prisma.course.findUnique({ where: { id: courseId } });
     if (!course) {
-      return res.status(404).json({ error: "Course not found" });
+      return res.json({ error: "Course not found" });
     }
 
     const updatedCourse = await prisma.course.update({
@@ -149,15 +150,15 @@ exports.assignTeacher = async (req, res) => {
     });
   } catch (error) {
     console.error("Error assigning teacher:", error);
-    res.status(500).json({ error: "Failed to assign teacher" });
+    res.json({ error: "Failed to assign teacher" });
   }
 };
 
 /**
- * @desc Add a student to a course
- * @route PATCH /api/courses/:courseId/add-student
- * @access Admin
+ * PATCH /api/courses/:courseId/add-student
+ * Admin
  */
+
 exports.addStudentToCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
@@ -165,19 +166,19 @@ exports.addStudentToCourse = async (req, res) => {
 
     const student = await prisma.user.findUnique({ where: { id: studentId } });
     if (!student || student.role !== "student") {
-      return res.status(400).json({ error: "Invalid student ID" });
+      return res.json({ error: "Invalid student ID" });
     }
 
     const course = await prisma.course.findUnique({ where: { id: courseId } });
     if (!course) {
-      return res.status(404).json({ error: "Course not found" });
+      return res.json({ error: "Course not found" });
     }
 
     const existingEnrollment = await prisma.enrollment.findFirst({
       where: { userId: studentId, courseId },
     });
     if (existingEnrollment) {
-      return res.status(400).json({ error: "Student already enrolled" });
+      return res.json({ error: "Student already enrolled" });
     }
 
     const newEnrollment = await prisma.enrollment.create({
@@ -190,29 +191,29 @@ exports.addStudentToCourse = async (req, res) => {
     });
   } catch (error) {
     console.error("Error adding student:", error);
-    res.status(500).json({ error: "Failed to add student" });
+    res.json({ error: "Failed to add student" });
   }
 };
 
 /**
- * @desc Remove a student from a course (Only Admin)
- * @route DELETE /api/courses/:courseId/remove-student
- * @access Admin
+ * DELETE /api/courses/:courseId/remove-student
+ * Admin
  */
+
 exports.removeStudentFromCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
     const { studentId } = req.body;
 
     if (!studentId) {
-      return res.status(400).json({ error: "Student ID is required" });
+      return res.json({ error: "Student ID is required" });
     }
 
     const course = await prisma.course.findUnique({
       where: { id: courseId },
     });
     if (!course) {
-      return res.status(404).json({ error: "Course not found" });
+      return res.json({ error: "Course not found" });
     }
 
     const enrollment = await prisma.enrollment.findFirst({
@@ -222,9 +223,7 @@ exports.removeStudentFromCourse = async (req, res) => {
       },
     });
     if (!enrollment) {
-      return res
-        .status(404)
-        .json({ error: "Student is not enrolled in this course" });
+      return res.json({ error: "Student is not enrolled in this course" });
     }
 
     await prisma.enrollment.delete({
@@ -238,40 +237,37 @@ exports.removeStudentFromCourse = async (req, res) => {
     });
   } catch (error) {
     console.error("Error removing student:", error);
-    res.status(500).json({ error: "Failed to remove student" });
+    res.json({ error: "Failed to remove student" });
   }
 };
+
 /**
- * @desc Remove a teacher from a course (Only Admin)
- * @route PATCH /api/courses/:courseId/remove-teacher
- * @access Admin
+ * PATCH /api/courses/:courseId/remove-teacher
+ * Admin
  */
+
 exports.removeTeacherFromCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
     const { teacherId } = req.body;
 
     if (!teacherId) {
-      return res.status(400).json({ error: "Teacher ID is required" });
+      return res.json({ error: "Teacher ID is required" });
     }
 
     const course = await prisma.course.findUnique({
       where: { id: courseId },
     });
     if (!course) {
-      return res.status(404).json({ error: "Course not found" });
+      return res.json({ error: "Course not found" });
     }
 
     if (!course.teacherId) {
-      return res
-        .status(400)
-        .json({ error: "This course has no assigned teacher" });
+      return res.json({ error: "This course has no assigned teacher" });
     }
 
     if (course.teacherId !== teacherId) {
-      return res
-        .status(400)
-        .json({ error: "This teacher is not assigned to this course" });
+      return res.json({ error: "This teacher is not assigned to this course" });
     }
 
     await prisma.course.update({
@@ -285,6 +281,36 @@ exports.removeTeacherFromCourse = async (req, res) => {
     });
   } catch (error) {
     console.error("Error removing teacher:", error);
-    res.status(500).json({ error: "Failed to remove teacher" });
+    res.json({ error: "Failed to remove teacher" });
+  }
+};
+
+/**
+ * GET /api/courses/:courseId/students
+ * Admin, Teacher
+ */
+
+exports.getCourseStudents = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+
+    const course = await prisma.course.findUnique({
+      where: { id: courseId },
+      include: {
+        students: {
+          include: { user: { select: { id: true, name: true, email: true } } },
+        },
+      },
+    });
+
+    if (!course) {
+      return res.json({ error: "Course not found" });
+    }
+
+    const students = course.students.map((enrollment) => enrollment.user);
+    res.json(students);
+  } catch (error) {
+    console.error("Error fetching course students:", error);
+    res.json({ error: "Failed to fetch students for this course" });
   }
 };

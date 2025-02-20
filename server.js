@@ -12,14 +12,14 @@ app.use(express.json());
 const authRoutes = require("./src/routes/authRoutes");
 const courseRoutes = require("./src/routes/courseRoutes");
 const userRoutes = require("./src/routes/userRoutes");
+const assignmentRoutes = require("./src/routes/assignmentRoutes");
+const attendanceRoutes = require("./src/routes/attendanceRoutes");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/courses", courseRoutes);
 app.use("/api/users", userRoutes);
-
-app.get("/", (req, res) => {
-  res.send("Upper Forest Hill Education API is running...");
-});
+app.use("/api/assignments", assignmentRoutes);
+app.use("/api/attendance", attendanceRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
