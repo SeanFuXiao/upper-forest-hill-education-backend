@@ -1,0 +1,86 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  student
+  teacher
+  admin
+}
+
+model User {
+  id              String    @id @default(uuid())
+  name            String
+  email           String    @unique
+  password        String
+  role            Role      @default(student)
+  enrollments     Enrollment[]
+  coursesTaught   Course[]  @relation("TeacherCourses")
+  createdAt       DateTime  @default(now())
+  attendance      Attendance[]
+  assignments     AssignmentSubmission[]
+}
+
+
+model Course {
+  id          String        @id @default(uuid())
+  name        String
+  startDate   DateTime
+  endDate     DateTime
+  time        String
+  category    String
+  teacherId   String?
+  teacher     User?         @relation("TeacherCourses", fields: [teacherId], references: [id])
+  students    Enrollment[]
+  assignments Assignment[]
+  zoom        String?
+  createdBy   String?
+  createdAt   DateTime      @default(now())
+  attendance  Attendance[]
+}
+
+
+model Enrollment {
+  id        String @id @default(uuid())
+  userId    String
+  courseId  String
+  user      User   @relation(fields: [userId], references: [id])
+  course    Course @relation(fields: [courseId], references: [id])
+}
+
+model Assignment {
+  id         String   @id @default(uuid())
+  courseId   String
+  course     Course   @relation(fields: [courseId], references: [id])
+  title      String
+  startDate  DateTime
+  dueDate    DateTime
+  createdBy  String
+  submissions AssignmentSubmission[]
+}
+
+model AssignmentSubmission {
+  id           String    @id @default(uuid())
+  assignmentId String
+  studentId    String
+  submittedAt  DateTime  @default(now())
+
+  assignment   Assignment @relation(fields: [assignmentId], references: [id])
+  student      User       @relation(fields: [studentId], references: [id])
+}
+
+model Attendance {
+  id         String   @id @default(uuid())
+  studentId  String
+  student    User     @relation(fields: [studentId], references: [id])
+  courseId   String
+  course     Course   @relation(fields: [courseId], references: [id])
+  date       DateTime
+  status     String
+  markedBy   String
+}
