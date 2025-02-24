@@ -3,10 +3,10 @@ const prisma = new PrismaClient();
 
 /**
  * POST /api/attendance/course/:courseId
- * Teacher
+ * POST /api/attendance/course/:courseId
  */
 
-exports.markAttendance = async (req, res) => {
+const markAttendance = async (req, res) => {
   try {
     const { studentId, date, status } = req.body;
     const { courseId } = req.params;
@@ -21,7 +21,7 @@ exports.markAttendance = async (req, res) => {
     });
 
     if (!studentId || !date || !status) {
-      console.log("❌ Missing required fields");
+      console.log("Missing required fields");
       return res.json({ error: "All fields are required" });
     }
 
@@ -94,10 +94,10 @@ exports.markAttendance = async (req, res) => {
 
 /**
  * GET /api/courses/:courseId/attendance
- * Teacher (for their courses) & Admin (all courses)
+ * GET /api/courses/:courseId/attendance
  */
 
-exports.getCourseAttendance = async (req, res) => {
+const getCourseAttendance = async (req, res) => {
   try {
     const { courseId } = req.params;
     const user = req.user;
@@ -128,11 +128,11 @@ exports.getCourseAttendance = async (req, res) => {
 };
 
 /**
- *GET /api/attendance/my-attendance
- *Student
+ * GET /api/attendance/my-attendance
+ * GET /api/attendance/my-attendance
  */
 
-exports.getStudentAttendance = async (req, res) => {
+const getStudentAttendance = async (req, res) => {
   try {
     const studentId = req.user.id;
 
@@ -150,10 +150,10 @@ exports.getStudentAttendance = async (req, res) => {
 
 /**
  * PATCH /api/courses/:courseId/attendance/:attendanceId
- * Teacher & Admin
+ * PATCH /api/courses/:courseId/attendance/:attendanceId
  */
 
-exports.updateAttendance = async (req, res) => {
+const updateAttendance = async (req, res) => {
   try {
     const { courseId, attendanceId } = req.params;
     const { status } = req.body;
@@ -195,9 +195,10 @@ exports.updateAttendance = async (req, res) => {
 
 /**
  * GET /api/attendance
+ * GET /api/attendance
  */
 
-exports.getAttendanceRecords = async (req, res) => {
+const getAttendanceRecords = async (req, res) => {
   try {
     let records;
 
@@ -240,4 +241,54 @@ exports.getAttendanceRecords = async (req, res) => {
     console.error("Error fetching attendance records:", error);
     res.json({ error: "Failed to fetch attendance records" });
   }
+};
+
+const getAttendanceById = async (req, res) => {
+  try {
+    const { attendanceId } = req.params;
+
+    const attendance = await prisma.attendance.findUnique({
+      where: { id: attendanceId },
+      include: {
+        student: { select: { id: true, name: true } },
+        course: { select: { id: true, name: true } },
+      },
+    });
+
+    if (!attendance)
+      return res.status(404).json({ error: "Attendance record not found" });
+
+    res.json(attendance);
+  } catch (error) {
+    console.error("Error fetching attendance record:", error);
+    res.json({ error: "Failed to fetch attendance record" });
+  }
+};
+
+const deleteAttendance = async (req, res) => {
+  try {
+    const { attendanceId } = req.params;
+
+    const attendance = await prisma.attendance.findUnique({
+      where: { id: attendanceId },
+    });
+    if (!attendance) return res.json({ error: "Attendance record not found" });
+
+    await prisma.attendance.delete({ where: { id: attendanceId } });
+
+    res.json({ message: "Attendance record deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting attendance record:", error);
+    res.json({ error: "Failed to delete attendance record" });
+  }
+};
+
+module.exports = {
+  markAttendance,
+  getCourseAttendance,
+  getStudentAttendance,
+  updateAttendance,
+  getAttendanceRecords,
+  getAttendanceById,
+  deleteAttendance,
 };

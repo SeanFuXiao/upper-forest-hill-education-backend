@@ -71,9 +71,11 @@ const loginUser = async (req, res) => {
   const isValidPassword = await comparePassword(password, user.password);
   if (!isValidPassword) return res.json({ error: "Invalid email or password" });
 
-  const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, {
-    expiresIn: "12h",
-  });
+  const token = jwt.sign(
+    { id: user.id, name: user.name, email: user.email, role: user.role },
+    JWT_SECRET,
+    { expiresIn: "12h" }
+  );
   res.json({ token, user });
 };
 

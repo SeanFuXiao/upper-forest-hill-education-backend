@@ -5,6 +5,8 @@ const {
   updateAttendance,
   getAttendanceRecords,
   getStudentAttendance,
+  getAttendanceById,
+  deleteAttendance,
 } = require("../controllers/attendanceController");
 
 const { authenticate } = require("../middleware/authMiddleware");
@@ -41,3 +43,12 @@ router.patch(
 );
 router.get("/", authenticate, getAttendanceRecords);
 module.exports = router;
+
+router.get("/:attendanceId", authenticate, getAttendanceById);
+
+router.delete(
+  "/:attendanceId",
+  authenticate,
+  authorize(["admin"]),
+  deleteAttendance
+);

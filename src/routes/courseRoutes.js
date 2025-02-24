@@ -8,6 +8,8 @@ const {
   getAllCourses,
   deleteCourse,
   getCourseStudents,
+  updateCourse,
+  getCourseById,
 } = require("../controllers/courseController");
 const { authenticate } = require("../middleware/authMiddleware");
 const { authorize } = require("../middleware/roleMiddleware");
@@ -51,8 +53,12 @@ router.get("/", authenticate, getAllCourses);
 router.get(
   "/:courseId/students",
   authenticate,
-  authorize(["admin", "teacher"]),
+  authorize(["admin", "teacher", "student"]),
   getCourseStudents
 );
+
+router.patch("/:courseId", authenticate, authorize(["admin"]), updateCourse);
+
+router.get("/:courseId", authenticate, getCourseById);
 
 module.exports = router;

@@ -2,8 +2,8 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 /**
- * /api/assignments/course/:courseId
- * Teacher
+   POST /api/assignments/course/:courseId
+   POST /api/assignments/course/:courseId
  */
 
 const createAssignment = async (req, res) => {
@@ -45,7 +45,7 @@ const createAssignment = async (req, res) => {
 
 /**
  * POST /api/assignments/:assignmentId/submit
- * Student
+ * POST /api/assignments/:assignmentId/submit
  */
 
 const submitAssignment = async (req, res) => {
@@ -88,7 +88,7 @@ const submitAssignment = async (req, res) => {
 
 /**
  * PATCH /api/assignments/:id
- * Teacher
+ * PATCH /api/assignments/:id
  */
 
 const updateAssignment = async (req, res) => {
@@ -123,7 +123,7 @@ const updateAssignment = async (req, res) => {
 
 /**
  * DELETE /api/assignments/:id
- * Teacher
+ * DELETE /api/assignments/:id
  */
 
 const deleteAssignment = async (req, res) => {
@@ -151,7 +151,7 @@ const deleteAssignment = async (req, res) => {
 
 /**
  * GET /api/assignments/course/:courseId
- * Teacher
+ * GET /api/assignments/course/:courseId
  */
 
 const getAssignmentsByCourse = async (req, res) => {
@@ -178,7 +178,7 @@ const getAssignmentsByCourse = async (req, res) => {
 
 /**
  * GET /api/assignments/:assignmentId/submissions
- * Student (Only their own), Teacher (Only their course students), Admin (All)
+ * GET /api/assignments/:assignmentId/submissions
  */
 
 const getAssignmentSubmissions = async (req, res) => {
@@ -232,7 +232,7 @@ const getAssignmentSubmissions = async (req, res) => {
 
 /**
  * PATCH /api/assignments/:assignmentId/submissions/:submissionId
- * Teacher
+ * PATCH /api/assignments/:assignmentId/submissions/:submissionId
  */
 
 const gradeAssignment = async (req, res) => {
@@ -310,6 +310,96 @@ const getAllSubmissions = async (req, res) => {
   }
 };
 
+const getAssignmentById = async (req, res) => {
+  try {
+    const { assignmentId } = req.params;
+
+    const assignment = await prisma.assignment.findUnique({
+      where: { id: assignmentId },
+      include: {
+        course: { select: { id: true, name: true, teacherId: true } },
+        submissions: {
+          include: {
+            student: { select: { id: true, name: true, email: true } },
+          },
+        },
+      },
+    });
+
+    if (!assignment)
+      return res.status(404).json({ error: "Assignment not found" });
+
+    res.json(assignment);
+  } catch (error) {
+    console.error("Error fetching assignment:", error);
+    res.json({ error: "Failed to fetch assignment" });
+  }
+};
+
+const provideAssignmentFeedback = async (req, res) => {
+  try {
+    const { assignmentId } = req.params;
+    const { submissionId, feedback } = req.body;
+    const teacherId = req.user.id;
+
+    if (!feedback)
+      return res.status(400).json({ error: "Feedback is required" });
+
+    const assignment = await prisma.assignment.findUnique({
+      where: { id: assignmentId },
+      include: { course: true },
+    });
+
+    if (!assignment)
+      return res.status(404).json({ error: "Assignment not found" });
+
+    if (assignment.course.teacherId !== teacherId) {
+      return res.json({
+        error: "Unauthorized: Only the teacher can give feedback",
+      });
+    }
+
+    const updatedSubmission = await prisma.assignmentSubmission.update({
+      where: { id: submissionId },
+      data: { feedback },
+    });
+
+    res.json(updatedSubmission);
+  } catch (error) {
+    console.error("Error providing feedback:", error);
+    res.json({ error: "Failed to provide feedback" });
+  }
+};
+
+const getStudentAssignments = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+
+    const enrollments = await prisma.enrollment.findMany({
+      where: { userId: studentId },
+      select: { courseId: true },
+    });
+
+    if (!enrollments.length) {
+      return res.json({ error: "You are not enrolled in any courses" });
+    }
+
+    const courseIds = enrollments.map((enrollment) => enrollment.courseId);
+
+    const assignments = await prisma.assignment.findMany({
+      where: { courseId: { in: courseIds } },
+      include: {
+        course: { select: { name: true, teacher: { select: { name: true } } } },
+      },
+    });
+
+    res.json(assignments);
+  } catch (error) {
+    console.error("Error fetching student assignments:", error);
+    res.json({ error: "Failed to fetch assignments" });
+  }
+};
+
 module.exports = {
   createAssignment,
   updateAssignment,
@@ -319,4 +409,7 @@ module.exports = {
   gradeAssignment,
   submitAssignment,
   getAllSubmissions,
+  getAssignmentById,
+  provideAssignmentFeedback,
+  getStudentAssignments,
 };

@@ -3,10 +3,10 @@ const prisma = new PrismaClient();
 
 /**
  *  GET /api/courses
- * Admin: All courses, Teacher: Only their courses, Student: Only their enrolled courses
+ *  GET /api/courses
  */
 
-exports.getAllCourses = async (req, res) => {
+const getAllCourses = async (req, res) => {
   try {
     console.log(
       `Fetching courses for user ${req.user.id} with role ${req.user.role}`
@@ -52,10 +52,10 @@ exports.getAllCourses = async (req, res) => {
 
 /**
  * POST /api/courses
- * Admin
+ * POST /api/courses
  */
 
-exports.createCourse = async (req, res) => {
+const createCourse = async (req, res) => {
   try {
     const { name, startDate, endDate, time, category, teacherId, zoom } =
       req.body;
@@ -98,10 +98,10 @@ exports.createCourse = async (req, res) => {
 };
 /**
  * DELETE /api/courses/:id
- * Admin
+ * DELETE /api/courses/:id
  */
 
-exports.deleteCourse = async (req, res) => {
+const deleteCourse = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -121,10 +121,10 @@ exports.deleteCourse = async (req, res) => {
 
 /**
  * PATCH /api/courses/:courseId/assign-teacher
- * Admin
+ * PATCH /api/courses/:courseId/assign-teacher
  */
 
-exports.assignTeacher = async (req, res) => {
+const assignTeacher = async (req, res) => {
   try {
     const { courseId } = req.params;
     const { teacherId } = req.body;
@@ -156,10 +156,10 @@ exports.assignTeacher = async (req, res) => {
 
 /**
  * PATCH /api/courses/:courseId/add-student
- * Admin
+ * PATCH /api/courses/:courseId/add-student
  */
 
-exports.addStudentToCourse = async (req, res) => {
+const addStudentToCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
     const { studentId } = req.body;
@@ -197,10 +197,10 @@ exports.addStudentToCourse = async (req, res) => {
 
 /**
  * DELETE /api/courses/:courseId/remove-student
- * Admin
+ * DELETE /api/courses/:courseId/remove-student
  */
 
-exports.removeStudentFromCourse = async (req, res) => {
+const removeStudentFromCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
     const { studentId } = req.body;
@@ -243,10 +243,10 @@ exports.removeStudentFromCourse = async (req, res) => {
 
 /**
  * PATCH /api/courses/:courseId/remove-teacher
- * Admin
+ * PATCH /api/courses/:courseId/remove-teacher
  */
 
-exports.removeTeacherFromCourse = async (req, res) => {
+const removeTeacherFromCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
     const { teacherId } = req.body;
@@ -287,10 +287,10 @@ exports.removeTeacherFromCourse = async (req, res) => {
 
 /**
  * GET /api/courses/:courseId/students
- * Admin, Teacher
+ * GET /api/courses/:courseId/students
  */
 
-exports.getCourseStudents = async (req, res) => {
+const getCourseStudents = async (req, res) => {
   try {
     const { courseId } = req.params;
 
@@ -298,7 +298,9 @@ exports.getCourseStudents = async (req, res) => {
       where: { id: courseId },
       include: {
         students: {
-          include: { user: { select: { id: true, name: true, email: true } } },
+          include: {
+            user: { select: { id: true, name: true, email: true, role: true } },
+          },
         },
       },
     });
@@ -313,4 +315,53 @@ exports.getCourseStudents = async (req, res) => {
     console.error("Error fetching course students:", error);
     res.json({ error: "Failed to fetch students for this course" });
   }
+};
+
+const updateCourse = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const { name, startDate, endDate, time, category, zoom } = req.body;
+
+    const course = await prisma.course.findUnique({ where: { id: courseId } });
+    if (!course) return res.status(404).json({ error: "Course not found" });
+
+    const updatedCourse = await prisma.course.update({
+      where: { id: courseId },
+      data: { name, startDate, endDate, time, category, zoom },
+    });
+
+    res.json(updatedCourse);
+  } catch (error) {
+    console.error("Error updating course:", error);
+    res.json({ error: "Failed to update course" });
+  }
+};
+
+const getCourseById = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const course = await prisma.course.findUnique({
+      where: { id: courseId },
+      include: { teacher: true, students: { include: { user: true } } },
+    });
+
+    if (!course) return res.status(404).json({ error: "Course not found" });
+
+    res.json(course);
+  } catch (error) {
+    console.error("Error fetching course:", error);
+    res.json({ error: "Failed to fetch course" });
+  }
+};
+module.exports = {
+  getAllCourses,
+  createCourse,
+  deleteCourse,
+  assignTeacher,
+  addStudentToCourse,
+  removeStudentFromCourse,
+  removeTeacherFromCourse,
+  getCourseStudents,
+  updateCourse,
+  getCourseById,
 };

@@ -8,6 +8,9 @@ const {
   gradeAssignment,
   submitAssignment,
   getAllSubmissions,
+  getAssignmentById,
+  provideAssignmentFeedback,
+  getStudentAssignments,
 } = require("../controllers/assignmentController");
 const { authenticate } = require("../middleware/authMiddleware");
 const { authorize } = require("../middleware/roleMiddleware");
@@ -31,7 +34,7 @@ router.post(
 router.get(
   "/course/:courseId",
   authenticate,
-  authorize(["teacher"]),
+  authorize(["teacher", "student"]),
   getAssignmentsByCourse
 );
 
@@ -40,13 +43,6 @@ router.post(
   authenticate,
   authorize(["student"]),
   submitAssignment
-);
-
-router.get(
-  "/course/:courseId",
-  authenticate,
-  authorize(["teacher"]),
-  getAssignmentsByCourse
 );
 
 router.patch(
@@ -60,11 +56,27 @@ router.patch("/:id", authenticate, authorize(["teacher"]), updateAssignment);
 
 router.delete("/:id", authenticate, authorize(["teacher"]), deleteAssignment);
 
-router.get(
-  "/course/:courseId",
+router.get("/:assignmentId", authenticate, getAssignmentById);
+
+router.patch(
+  "/:assignmentId/feedback",
   authenticate,
   authorize(["teacher"]),
-  getAssignmentsByCourse
+  provideAssignmentFeedback
+);
+
+router.get(
+  "/:assignmentId/submissions",
+  authenticate,
+  authorize(["student", "teacher", "admin"]),
+  getAssignmentSubmissions
+);
+
+router.get(
+  "/my-courses",
+  authenticate,
+  authorize(["student"]),
+  getStudentAssignments
 );
 
 module.exports = router;
