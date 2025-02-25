@@ -1,7 +1,5 @@
 # upper-forest-hill-education-backend
 
-# Upper Forest Hill Education - Backend
-
 ## Overview
 
 The backend is a Node.js + Express application providing authentication, role-based access, course management, assignment tracking, and attendance features.
